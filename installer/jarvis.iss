@@ -22,6 +22,10 @@ SolidCompression=no
 DiskSpanning=yes
 DiskSliceSize=max
 WizardStyle=modern
+; Always let the user choose the install folder
+DisableDirPage=no
+DisableProgramGroupPage=yes
+DisableWelcomePage=no
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 PrivilegesRequiredOverridesAllowed=dialog
@@ -38,6 +42,7 @@ Name: "startup"; Description: "Start JARVIS when Windows starts"; GroupDescripti
 Source: "..\dist\JARVIS-AI\*"; DestDir: "{app}"; Excludes: "*.gguf,*.onnx"; Flags: recursesubdirs ignoreversion
 ; model weights don't compress, so skip compression for speed
 Source: "..\dist\JARVIS-AI\*.gguf"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion nocompression skipifsourcedoesntexist
+Source: "..\packaging\redist\vc_redist.x64.exe"; DestDir: "{tmp}"; Flags: deleteafterinstall skipifsourcedoesntexist
 Source: "..\dist\JARVIS-AI\*.onnx"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion nocompression skipifsourcedoesntexist
 
 [Icons]
@@ -47,4 +52,6 @@ Name: "{autodesktop}\JARVIS AI"; Filename: "{app}\{#AppExe}"; Tasks: desktopicon
 Name: "{userstartup}\JARVIS AI"; Filename: "{app}\{#AppExe}"; Tasks: startup
 
 [Run]
+; Microsoft C++ runtime used by the built-in AI engine (silent, skipped if already present)
+Filename: "{tmp}\vc_redist.x64.exe"; Parameters: "/install /quiet /norestart"; StatusMsg: "Installing Microsoft C++ runtime..."; Flags: waituntilterminated skipifdoesntexist
 Filename: "{app}\{#AppExe}"; Description: "Launch JARVIS AI"; Flags: nowait postinstall skipifsilent
