@@ -1,5 +1,7 @@
 name: Build JARVIS (Windows setup.exe + Linux)
 on: [push, workflow_dispatch]
+permissions:
+  contents: write
 jobs:
   build:
     strategy:
@@ -36,3 +38,20 @@ jobs:
       - if: runner.os == 'Linux'
         uses: actions/upload-artifact@v4
         with: { name: JARVIS-AI-Linux, path: JARVIS-AI-Linux.tar, compression-level: 0 }
+      - if: runner.os == 'Windows'
+        name: Publish setup.exe to GitHub Release
+        shell: bash
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: |
+          ls -la Output
+          gh release view v1.0.0 >/dev/null 2>&1 || gh release create v1.0.0 --title "JARVIS AI 1.0" --notes "Download JARVIS-AI-Setup.exe AND JARVIS-AI-Setup-1.bin into the same folder, then run JARVIS-AI-Setup.exe. Built-in AI (Hermes 3 3B), Hindi + English voices, no Ollama or API key needed."
+          gh release upload v1.0.0 Output/* --clobber
+      - if: runner.os == 'Linux'
+        name: Publish Linux build to GitHub Release
+        shell: bash
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: |
+          sleep 60
+          gh release view v1.0.0 >/dev/null 2>&1 || gh release create v1.0.0 --title "JARVIS AI 1.0" --notes "See assets."
+          split -b 1900m -d JARVIS-AI-Linux.tar JARVIS-AI-Linux.tar.part
+          gh release upload v1.0.0 JARVIS-AI-Linux.tar.part* --clobber
