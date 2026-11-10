@@ -17,10 +17,10 @@ SetupIconFile=..\assets\jarvis.ico
 UninstallDisplayIcon={app}\{#AppExe}
 Compression=lzma2/fast
 SolidCompression=no
-; The built-in AI makes the app ~2.3 GB, above Inno's 2 GB single-file limit,
-; so Setup is split: JARVIS-AI-Setup.exe + JARVIS-AI-Setup-1.bin (keep them together).
-DiskSpanning=yes
-DiskSliceSize=max
+; One single JARVIS-AI-Setup.exe. The 2 GB built-in AI model is too big for one
+; installer file (Inno and GitHub both cap files at 2 GB), so Setup downloads it
+; automatically during installation. Nothing to install by hand.
+ExtraDiskSpaceRequired=2100000000
 WizardStyle=modern
 ; Always let the user choose the install folder
 DisableDirPage=no
@@ -41,7 +41,7 @@ Name: "startup"; Description: "Start JARVIS when Windows starts"; GroupDescripti
 [Files]
 Source: "..\dist\JARVIS-AI\*"; DestDir: "{app}"; Excludes: "*.gguf,*.onnx"; Flags: recursesubdirs ignoreversion
 ; model weights don't compress, so skip compression for speed
-Source: "..\dist\JARVIS-AI\*.gguf"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion nocompression skipifsourcedoesntexist
+Source: "{tmp}\Hermes-3-Llama-3.2-3B.Q4_K_M.gguf"; DestDir: "{app}\_internal\models"; Flags: external ignoreversion deleteafterinstall
 Source: "..\packaging\redist\vc_redist.x64.exe"; DestDir: "{tmp}"; Flags: deleteafterinstall skipifsourcedoesntexist
 Source: "..\dist\JARVIS-AI\*.onnx"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion nocompression skipifsourcedoesntexist
 
@@ -55,3 +55,43 @@ Name: "{userstartup}\JARVIS AI"; Filename: "{app}\{#AppExe}"; Tasks: startup
 ; Microsoft C++ runtime used by the built-in AI engine (silent, skipped if already present)
 Filename: "{tmp}\vc_redist.x64.exe"; Parameters: "/install /quiet /norestart"; StatusMsg: "Installing Microsoft C++ runtime..."; Flags: waituntilterminated skipifdoesntexist
 Filename: "{app}\{#AppExe}"; Description: "Launch JARVIS AI"; Flags: nowait postinstall skipifsilent
+
+[Code]
+var
+  DownloadPage: TDownloadWizardPage;
+
+function OnDownloadProgress(const Url, FileName: String; const Progress, ProgressMax: Int64): Boolean;
+begin
+  Result := True;
+end;
+
+procedure InitializeWizard;
+begin
+  DownloadPage := CreateDownloadPage('Downloading JARVIS built-in AI',
+    'Hermes 3 (about 2 GB). This happens once; JARVIS then works fully offline.', @OnDownloadProgress);
+end;
+
+function NextButtonClick(CurPageID: Integer): Boolean;
+begin
+  Result := True;
+  if CurPageID = wpReady then begin
+    DownloadPage.Clear;
+    DownloadPage.Add('https://huggingface.co/NousResearch/Hermes-3-Llama-3.2-3B-GGUF/resolve/main/Hermes-3-Llama-3.2-3B.Q4_K_M.gguf',
+      'Hermes-3-Llama-3.2-3B.Q4_K_M.gguf', '');
+    DownloadPage.Show;
+    try
+      try
+        DownloadPage.Download;
+      except
+        if DownloadPage.AbortedByUser then
+          Log('Download aborted by user.')
+        else
+          SuppressibleMsgBox('Could not download the built-in AI: ' + AddPeriod(GetExceptionMessage) +
+            #13#10 + 'Check your internet connection and click Next to try again.', mbCriticalError, MB_OK, IDOK);
+        Result := False;
+      end;
+    finally
+      DownloadPage.Hide;
+    end;
+  end;
+end;

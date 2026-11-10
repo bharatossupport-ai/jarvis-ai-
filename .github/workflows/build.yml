@@ -25,7 +25,14 @@ jobs:
       - if: runner.os == 'Linux'
         run: python -m playwright install chromium
         env: { PLAYWRIGHT_BROWSERS_PATH: "0" }
+      - if: runner.os == 'Windows'
+        name: Keep the 2 GB model out of the exe (Setup downloads it during install)
+        shell: bash
+        run: mkdir -p ../llm && mv models/*.gguf ../llm/
       - run: pyinstaller --noconfirm packaging/jarvis.spec
+      - if: runner.os == 'Windows'
+        shell: bash
+        run: mv ../llm/*.gguf models/   # restore for the models cache
       - if: runner.os == 'Windows'
         run: |
           choco install innosetup -y --no-progress
@@ -46,8 +53,8 @@ jobs:
         env: { GH_TOKEN: "${{ github.token }}" }
         run: |
           ls -la Output
-          gh release view v1.0.0 >/dev/null 2>&1 || gh release create v1.0.0 --title "JARVIS AI 1.0" --notes "Download JARVIS-AI-Setup.exe AND JARVIS-AI-Setup-1.bin into the same folder, then run JARVIS-AI-Setup.exe. Built-in AI (Hermes 3 3B), Hindi + English voices, no Ollama or API key needed."
-          gh release upload v1.0.0 Output/* --clobber
+          gh release view v1.0.0 >/dev/null 2>&1 || gh release create v1.0.0 --title "JARVIS AI 1.0" --notes "Windows: download JARVIS-AI-Setup.exe and run it. Pick a folder; it downloads the built-in AI (about 2 GB) once during install and puts JARVIS on your desktop. No Ollama, Python or API key needed."
+          gh release upload v1.0.0 Output/JARVIS-AI-Setup.exe --clobber
       - if: runner.os == 'Linux'
         name: Publish Linux build to GitHub Release
         shell: bash
