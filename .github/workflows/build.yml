@@ -53,8 +53,8 @@ jobs:
         env: { GH_TOKEN: "${{ github.token }}" }
         run: |
           ls -la Output
-          gh release view v1.0.0 >/dev/null 2>&1 || gh release create v1.0.0 --title "JARVIS AI 1.0" --notes "Windows: download JARVIS-AI-Setup.exe and run it. Pick a folder; it downloads the built-in AI (about 2 GB) once during install and puts JARVIS on your desktop. No Ollama, Python or API key needed."
-          gh release upload v1.0.0 Output/JARVIS-AI-Setup.exe --clobber
+          gh release view v1.0.0 >/dev/null 2>&1 || gh release create v1.0.0 --title "JARVIS AI 1.0" --notes "Windows: download JARVIS-AI-Setup.exe and every JARVIS-AI-Setup-*.bin into one folder, then run the exe. Fully offline, built-in AI included."
+          gh release upload v1.0.0 Output/* --clobber
       - if: runner.os == 'Linux'
         name: Publish Linux build to GitHub Release
         shell: bash
