@@ -86,8 +86,7 @@ begin
         if DownloadPage.AbortedByUser then
           Log('Download aborted by user.')
         else
-          SuppressibleMsgBox('Could not download the built-in AI: ' + AddPeriod(GetExceptionMessage) +
-            #13#10 + 'Check your internet connection and click Next to try again.', mbCriticalError, MB_OK, IDOK);
+          SuppressibleMsgBox('Could not download the built-in AI: ' + AddPeriod(GetExceptionMessage) + #13#10 + 'Check your internet connection and click Next to try again.', mbCriticalError, MB_OK, IDOK);
         Result := False;
       end;
     finally
