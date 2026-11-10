@@ -14,8 +14,20 @@ def configure(settings):
 def _page_text(url, wait="domcontentloaded"):
     from playwright.sync_api import sync_playwright
     with sync_playwright() as p:
-        ctx = p.chromium.launch_persistent_context(
-            str(sub("browser_profile")), headless=bool(_settings and _settings.get("browser_headless")))
+        import sys
+        kw = dict(headless=bool(_settings and _settings.get("browser_headless")))
+        # Windows 11 always has Edge, so the installer doesn't need to ship Chromium
+        channels = ["msedge", None] if sys.platform.startswith("win") else [None, "chrome"]
+        last = None
+        for ch in channels:
+            try:
+                ctx = p.chromium.launch_persistent_context(str(sub("browser_profile")),
+                                                           **({"channel": ch} if ch else {}), **kw)
+                break
+            except Exception as e:
+                last = e
+        else:
+            raise RuntimeError(f"No browser available: {last}")
         try:
             page = ctx.new_page()
             page.goto(url, wait_until=wait, timeout=45000)

@@ -6,3 +6,4 @@ Output/
 AppDir/
 *.AppImage
 .pytest_cache/
+models/

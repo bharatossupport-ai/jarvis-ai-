@@ -41,7 +41,10 @@ class Transcriber:
         with self._lock:
             if Transcriber._model is None:  # lazy load: keeps RAM free until first use
                 from faster_whisper import WhisperModel
-                Transcriber._model = WhisperModel(self.size, device="cpu", compute_type="int8")
+                from storage.paths import resource
+                bundled = resource(f"models/whisper-{self.size}")
+                src = str(bundled) if bundled.exists() else self.size
+                Transcriber._model = WhisperModel(src, device="cpu", compute_type="int8")
         return Transcriber._model
 
     def transcribe(self, audio_int16):
@@ -55,7 +58,9 @@ class Transcriber:
 class Speaker:
     """Piper TTS. Returns a WAV path; the UI plays it and animates the 3D companion."""
 
-    def __init__(self, voice_path):
+    def __init__(self, voice_path=None, language="en"):
+        if not voice_path:
+            voice_path = bundled_voice(language)
         self.voice_path, self._voice = voice_path, None
 
     def available(self):
@@ -77,3 +82,15 @@ def list_input_devices():
         return [(i, d["name"]) for i, d in enumerate(sd.query_devices()) if d["max_input_channels"] > 0]
     except Exception:
         return []
+
+
+def bundled_voice(language="en"):
+    """Piper voices shipped inside the app: Hindi (pratham) and English (lessac)."""
+    from storage.paths import resource
+    name = "hi_IN-pratham-medium.onnx" if language == "hi" else "en_US-lessac-medium.onnx"
+    p = resource("models/piper") / name
+    return str(p) if p.exists() else ""
+
+
+def looks_hindi(text):
+    return sum(1 for ch in text if "\u0900" <= ch <= "\u097F") > len(text) * 0.2

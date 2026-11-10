@@ -15,8 +15,12 @@ OutputDir=..\Output
 OutputBaseFilename=JARVIS-AI-Setup
 SetupIconFile=..\assets\jarvis.ico
 UninstallDisplayIcon={app}\{#AppExe}
-Compression=lzma2/max
-SolidCompression=yes
+Compression=lzma2/fast
+SolidCompression=no
+; The built-in AI makes the app ~2.3 GB, above Inno's 2 GB single-file limit,
+; so Setup is split: JARVIS-AI-Setup.exe + JARVIS-AI-Setup-1.bin (keep them together).
+DiskSpanning=yes
+DiskSliceSize=max
 WizardStyle=modern
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
@@ -31,7 +35,10 @@ Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription:
 Name: "startup"; Description: "Start JARVIS when Windows starts"; GroupDescription: "Startup:"; Flags: unchecked
 
 [Files]
-Source: "..\dist\JARVIS-AI\*"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion
+Source: "..\dist\JARVIS-AI\*"; DestDir: "{app}"; Excludes: "*.gguf,*.onnx"; Flags: recursesubdirs ignoreversion
+; model weights don't compress, so skip compression for speed
+Source: "..\dist\JARVIS-AI\*.gguf"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion nocompression skipifsourcedoesntexist
+Source: "..\dist\JARVIS-AI\*.onnx"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion nocompression skipifsourcedoesntexist
 
 [Icons]
 Name: "{group}\JARVIS AI"; Filename: "{app}\{#AppExe}"
@@ -41,19 +48,3 @@ Name: "{userstartup}\JARVIS AI"; Filename: "{app}\{#AppExe}"; Tasks: startup
 
 [Run]
 Filename: "{app}\{#AppExe}"; Description: "Launch JARVIS AI"; Flags: nowait postinstall skipifsilent
-
-[Code]
-function OllamaInstalled(): Boolean;
-begin
-  Result := FileExists(ExpandConstant('{localappdata}\Programs\Ollama\ollama.exe'))
-         or FileExists(ExpandConstant('{autopf}\Ollama\ollama.exe'));
-end;
-
-procedure CurStepChanged(CurStep: TSetupStep);
-var R: Integer;
-begin
-  if (CurStep = ssPostInstall) and (not OllamaInstalled()) then
-    if MsgBox('JARVIS needs Ollama for its local AI. Open the Ollama download page now?' + #13#10 +
-              'After installing, run:  ollama pull gemma3:1b', mbConfirmation, MB_YESNO) = IDYES then
-      ShellExec('open', 'https://ollama.com/download/windows', '', '', SW_SHOWNORMAL, ewNoWait, R);
-end;

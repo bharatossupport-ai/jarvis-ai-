@@ -235,7 +235,7 @@ class MainWindow(QMainWindow):
         self.comp_pick.addItems(["Auto (JARVIS routes)"] + [n for n in COMPANIONS if n != "JARVIS"])
         self.comp_pick.currentTextChanged.connect(self._pick_companion)
         self.prov_pick = QComboBox()
-        self.prov_pick.addItems(["ollama", "cloud"])
+        self.prov_pick.addItems(["embedded", "ollama", "cloud"])
         self.prov_pick.setCurrentText(self.settings.get("provider"))
         self.prov_pick.currentTextChanged.connect(lambda v: (self.settings.set("provider", v), self.check_model()))
         top.addWidget(QLabel("Companion"))
@@ -411,7 +411,7 @@ class MainWindow(QMainWindow):
         self.vlang.setCurrentIndex(max(0, self.vlang.findData(self.settings.get("voice_language"))))
         self.vlang.currentIndexChanged.connect(lambda _: self.settings.set("voice_language", self.vlang.currentData()))
         form.addRow("Spoken language", self.vlang)
-        form.addRow("", QLabel("For Hindi speech use 'small' Whisper and a hi_IN Piper voice.", objectName="muted"))
+        form.addRow("", QLabel("Built-in voices: Hindi (pratham) and English (lessac), picked automatically. Leave the voice path empty to use them.", objectName="muted"))
         vrow = QHBoxLayout()
         self.piper_path = QLineEdit(self.settings.get("piper_voice"))
         pick = QPushButton("Browse", objectName="ghost")
@@ -433,6 +433,10 @@ class MainWindow(QMainWindow):
         w, lay = page("Settings")
         form = QFormLayout()
         self.f = {}
+        mp = QLineEdit(self.settings.get("embedded_model_path") or "")
+        mp.setPlaceholderText("Empty = built-in Hermes 3 (3B)")
+        mp.editingFinished.connect(lambda: (self.settings.set("embedded_model_path", mp.text().strip()), self.check_model()))
+        form.addRow("Built-in model file (.gguf)", mp)
         for key, label in [("ollama_url", "Ollama URL"), ("ollama_model", "Ollama model"),
                            ("cloud_base_url", "Cloud API base URL"), ("cloud_model", "Cloud model")]:
             e = QLineEdit(str(self.settings.get(key)))
@@ -583,7 +587,7 @@ class MainWindow(QMainWindow):
         self.thinking.setText("")
         self._append("assistant", text, companion, model)
         self.load_conversations()
-        if self.settings.get("speak_replies") and self.settings.get("piper_voice"):
+        if self.settings.get("speak_replies"):
             self.speak_text(text)
         else:
             self.bridge.set_mood("idle")
@@ -633,8 +637,11 @@ class MainWindow(QMainWindow):
                 import numpy as np
                 import sounddevice as sd
                 import soundfile as sf
-                from voice.speech import Speaker
-                wav = Speaker(self.settings.get("piper_voice")).synth(text[:1200])
+                from voice.speech import Speaker, looks_hindi
+                sp = Speaker(self.settings.get("piper_voice"), "hi" if looks_hindi(text) else "en")
+                if not sp.available():
+                    raise RuntimeError("No voice found. Pick a Piper voice on the Voice page.")
+                wav = sp.synth(text[:1200])
                 data, sr = sf.read(wav, dtype="float32")
                 block = int(sr * 0.05)
                 for i in range(0, len(data), block):

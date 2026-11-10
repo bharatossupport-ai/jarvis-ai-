@@ -4,7 +4,7 @@ from copy import deepcopy
 from .paths import data_dir
 
 DEFAULTS = {
-    "provider": "ollama",              # "ollama" or "cloud"
+    "provider": "embedded",            # "embedded" (built-in Hermes), "ollama" or "cloud"
     "ollama_url": "http://127.0.0.1:11434",
     "ollama_model": "gemma3:1b",       # multilingual, handles Hindi well for its size
     "cloud_base_url": "https://api.openai.com/v1",
@@ -13,7 +13,7 @@ DEFAULTS = {
     "max_context_messages": 20,
     "theme": "dark",
     "voice_enabled": True,
-    "whisper_model": "base",
+    "whisper_model": "base",           # bundled; tiny/small download on first use
     "piper_voice": "",                 # path to a .onnx Piper voice
     "mic_device": None,
     "speak_replies": False,
@@ -27,6 +27,8 @@ DEFAULTS = {
     "auto_learn": True,                # learn facts while chatting
     "auto_approve_learned": True,      # False = learned facts wait for approval
     "enabled_connectors": [],
+    "embedded_model_path": "",         # empty = bundled model in the app's models folder
+    "embedded_ctx": 4096,
     "webhook_url": "",
 }
 

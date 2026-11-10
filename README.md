@@ -2,7 +2,12 @@
 
 One Python codebase. Build it on Windows for a `.exe`, on Linux for a Linux app.
 
-## 1. Install the AI model (both OSes)
+## 1. Built-in AI (nothing to install)
+JARVIS ships with Hermes 3 (Llama 3.2 3B, Q4_K_M) running inside the app via llama.cpp, plus Whisper base and Hindi/English Piper voices. No Ollama, no API key, works offline. Ollama and cloud stay available as options in Settings.
+
+Running from source? Fetch the models once: `python packaging/fetch_models.py`
+
+## 1b. Optional: Ollama
 1. Install Ollama: https://ollama.com/download
 2. Pull the default model (multilingual, good Hindi for its size, runs on 12 GB RAM):
    `ollama pull gemma3:1b`

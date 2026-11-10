@@ -3,11 +3,10 @@ on: [push, workflow_dispatch]
 jobs:
   build:
     strategy:
+      fail-fast: false
       matrix:
         os: [windows-latest, ubuntu-22.04]
     runs-on: ${{ matrix.os }}
-    env:
-      PLAYWRIGHT_BROWSERS_PATH: "0"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -17,7 +16,13 @@ jobs:
       - run: pip install -r requirements.txt
       - run: python -m pytest -q
         env: { QT_QPA_PLATFORM: offscreen }
-      - run: python -m playwright install chromium
+      - name: Cache models
+        uses: actions/cache@v4
+        with: { path: models, key: models-hermes3b-q4km-whisperbase-piper-v1 }
+      - run: python packaging/fetch_models.py
+      - if: runner.os == 'Linux'
+        run: python -m playwright install chromium
+        env: { PLAYWRIGHT_BROWSERS_PATH: "0" }
       - run: pyinstaller --noconfirm packaging/jarvis.spec
       - if: runner.os == 'Windows'
         run: |
@@ -25,7 +30,9 @@ jobs:
           & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" installer\jarvis.iss
       - if: runner.os == 'Windows'
         uses: actions/upload-artifact@v4
-        with: { name: JARVIS-AI-Setup, path: Output/JARVIS-AI-Setup.exe }
+        with: { name: JARVIS-AI-Setup-Windows, path: Output/, compression-level: 0 }
+      - if: runner.os == 'Linux'
+        run: tar -cf JARVIS-AI-Linux.tar -C dist JARVIS-AI
       - if: runner.os == 'Linux'
         uses: actions/upload-artifact@v4
-        with: { name: JARVIS-AI-Linux, path: dist/JARVIS-AI }
+        with: { name: JARVIS-AI-Linux, path: JARVIS-AI-Linux.tar, compression-level: 0 }

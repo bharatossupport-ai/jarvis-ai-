@@ -5,7 +5,8 @@ sudo apt-get install -y python3-venv libportaudio2 libxcb-cursor0 wmctrl xdotool
 python3 -m venv --system-site-packages .venv   # system site-packages gives access to pyatspi
 source .venv/bin/activate
 pip install -r requirements.txt
-python -m playwright install --with-deps chromium
+PLAYWRIGHT_BROWSERS_PATH=0 python -m playwright install --with-deps chromium
+python packaging/fetch_models.py
 pyinstaller --noconfirm packaging/jarvis.spec
 mkdir -p AppDir/usr/bin && cp -r dist/JARVIS-AI/* AppDir/usr/bin/
 cp assets/jarvis.png AppDir/jarvis.png
