@@ -1,0 +1,31 @@
+name: Build JARVIS (Windows setup.exe + Linux)
+on: [push, workflow_dispatch]
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-22.04]
+    runs-on: ${{ matrix.os }}
+    env:
+      PLAYWRIGHT_BROWSERS_PATH: "0"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libportaudio2 libxcb-cursor0 libegl1 libgl1
+      - run: pip install -r requirements.txt
+      - run: python -m pytest -q
+        env: { QT_QPA_PLATFORM: offscreen }
+      - run: python -m playwright install chromium
+      - run: pyinstaller --noconfirm packaging/jarvis.spec
+      - if: runner.os == 'Windows'
+        run: |
+          choco install innosetup -y --no-progress
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" installer\jarvis.iss
+      - if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with: { name: JARVIS-AI-Setup, path: Output/JARVIS-AI-Setup.exe }
+      - if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v4
+        with: { name: JARVIS-AI-Linux, path: dist/JARVIS-AI }
